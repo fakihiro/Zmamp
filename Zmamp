@@ -23,7 +23,7 @@ function HELP()
   echo "Usage: Zmamp [start]"
   echo "             [stop]"
   echo "             [php] [-v|-cv|-cfg|-a]"
-  echo "             [httpd] [start|stop|restart|status]"
+  echo "             [httpd] [start|stop|restart|status|conf]"
   echo "             [mysqld] [start|stop|restart|status]"
   echo ""
   echo "Options:"
