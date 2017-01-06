@@ -188,7 +188,7 @@ function HTTPD()
 
     while vi ${HTTPD_CONF} || :;do
       echo "Edit the end ?"
-      if Ynselecter ;then
+      if _ynselecter ;then
         [ "$(${_STAT})" != "${_ftime}" ] && restart && return 0 || return 0
       fi
     done
