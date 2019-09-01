@@ -8,17 +8,8 @@
 #
 # ================================================================
 
-function Include_conf()
-{
-  _BASE_DIR="/Applications/MAMP"
-  _BIN_DIR="${_BASE_DIR}/bin"
-  _PHP_DIR="${_BIN_DIR}/php"
-  _CONF_DIR="${_BASE_DIR}/conf"
-  _HTTPD_CONF="${_CONF_DIR}/apache/httpd.conf"
-}
-
-function help()
-{
+function _help()
+{(
   echo ""
   echo "Usage: Zmamp [start]"
   echo "             [stop]"
@@ -45,56 +36,30 @@ function help()
   echo "    stop                     Stop the mysqld of MAMP"
   echo "    restart                  Restarting the mysqld of MAMP"
   echo "    status                   Check the status of the mysqld of MAMP"
-}
+)}
 
-function main()
-{
-  local prog="Zmamp"
-  Include_conf
+function _main()
+{(
+  prog="Zmamp"
+
+  _BASE_DIR="/Applications/MAMP"
+  _BIN_DIR="${_BASE_DIR}/bin"
+  _PHP_DIR="${_BIN_DIR}/php"
+  _CONF_DIR="${_BASE_DIR}/conf"
+  _HTTPD_CONF="${_CONF_DIR}/apache/httpd.conf"
 
   case ${1} in
     start | stop | status)
-      mamp "${1}"
+      _mamp ${1}
       ;;
     httpd )
-      case ${2} in
-        start | stop | restart | status | conf)
-          HTTPD && ${2}
-          ;;
-        *)
-          help
-          ;;
-      esac
+      _httpd ${2}
       ;;
     mysqld )
-      case ${2} in
-        start | stop | restart | status )
-          MYSQLD && ${2}
-          ;;
-        *)
-          help
-          ;;
-      esac
+      _mysqld ${2}
       ;;
     php )
-      PHP
-      case ${2} in
-        -v | --check-ver)
-          check
-          ;;
-        -cv | --conf-ver)
-          change
-          ;;
-        -cfg | --conf)
-          conf
-          ;;
-        -a)
-          a ${2}
-          ;;
-        *)
-          help
-          ;;
-      esac
+      _php ${2}
       ;;
     -h | --help | * )
       help
@@ -102,175 +67,216 @@ function main()
   esac
 
   return 0
-}
+)}
 
-function mamp()
+function _mamp()
 {
-  local r=0
-  HTTPD && ${1} || r=1
-  MYSQLD && ${1} || r=1
+  r=0
+  _httpd && ${1} || r=1
+  _mysqld && ${1} || r=1
   return ${r}
 }
 
-function HTTPD()
-{
+function _httpd()
+{(
   SERVICE="httpd"
 
+  function _main()
+  {(
+    case ${1} in
+      start | stop | restart | status)
+        _${1}
+        ;;
+      *)
+        _help
+        ;;
+    esac
+
+    return $?
+  )}
+
   # start
-  function start()
-  {
+  function _start()
+  {(
     echo "Start ${SERVICE}."
 
-    _status && echo "${SERVICE} already running..." && return 0
+    _is_running && echo "${SERVICE} already running..." && return 0
 
     if sudo ${_BIN_DIR}/startApache.sh;then
-      _wait "HTTPD" "start" && echo " [ OK ]" || echo " [ Failed ]"
+      _wait "_httpd" "start" && echo " [ OK ]" || echo " [ Failed ]"
     else
-      Err "httpd start failed."
+      _error "httpd start failed." && return 1
     fi
 
     return 0
-  }
+  )}
 
   # stop
-  function stop()
-  {
+  function _stop()
+  {(
     echo "Stop ${SERVICE}."
 
-    ! _status && echo "${SERVICE} already stopped." && return 0
+    ! _is_running && echo "${SERVICE} already stopped." && return 0
 
     if sudo ${_BIN_DIR}/stopApache.sh;then
-      _wait "HTTPD" "stop" && echo "[ OK ]" || echo "[ Failed ]"
+      _wait "_httpd" "stop" && echo "[ OK ]" || echo "[ Failed ]"
     else
-      Err "httpd stop failed."
+      _error "httpd stop failed." && return 1
     fi
 
     return 0
-  }
+  )}
 
   # restart
-  function restart()
-  {
-    _status && stop
-    start
+  function _restart()
+  {(
+    _is_running && _stop
+    _start
 
     return 0
-  }
+  )}
 
   # status
-  function status()
-  {
-    _status && echo "${SERVICE} is running..." || echo "${SERVICE} is stop."
-    return 0
-  }
-
-  # _status
   function _status()
-  {
+  {(
+    _is_running && echo "${SERVICE} is running..." || echo "${SERVICE} is stop."
+    return 0
+  )}
+
+  # _is_running
+  function _is_running()
+  {(
     # return code
     # 0: Is running
     # 1: Stoped
 
-    ps cax | grep httpd > /dev/null
+    ps cax | grep "httpd" > /dev/null
+
     return $?
-  }
+  )}
 
-  # conf
-  function conf()
-  {
-    echo "To change the httpd.conf file ?"
-    ! _ynselecter && return 0
-
-    [ ! -e ${_HTTPD_CONF} ] && Err "'httpd.conf' is not found."
-
-    local _STAT="stat -f "%m" ${_HTTPD_CONF}"
-    local _ftime=$(${_STAT})
-
-    while vi ${_HTTPD_CONF} || :;do
-      echo "Edit the end ?"
-      if _ynselecter ;then
-        [ "$(${_STAT})" != "${_ftime}" ] && restart && return 0 || return 0
-      fi
-    done
-  }
+  _main "${1}"
 
   return 0
-}
+)}
 
 #  mysqld main
-function MYSQLD()
-{
+function _mysqld()
+{(
   SERVICE="mysqld"
 
+  function _main()
+  {(
+      case ${1} in
+        start | stop | restart | status )
+          _${1}
+          ;;
+        *)
+          _help
+          ;;
+      esac
+
+      return $?
+  )}
+
   # start
-  function start()
-  {
-    _status &&  echo "${SERVICE} is already running." && return 0
+  function _start()
+  {(
+    _is_running &&  echo "${SERVICE} is already running." && return 0
 
     echo "Start ${SERVICE}."
     nohup ${_BIN_DIR}/startMysql.sh > /dev/null
 
-    _wait "MYSQLD" "start" && echo "[ OK ]" || echo "[ Failed ]"
+    _wait "_mysqld" "start" && echo "[ OK ]" || echo "[ Failed ]"
 
     return 0
-  }
+  )}
 
   # stop
-  function stop()
-  {
-    ! _status && echo "${SERVICE} is not running." && return 0
+  function _stop()
+  {(
+    ! _is_running && echo "${SERVICE} is not running." && return 0
 
     echo "Stop ${SERVICE}."
     nohup ${_BIN_DIR}/stopMysql.sh > /dev/null
 
-    _wait "MYSQLD" "stop" && echo "[ OK ]" || echo "[ Failed ]"
+    _wait "_mysqld" "stop" && echo "[ OK ]" || echo "[ Failed ]"
 
     return 0
-  }
+  )}
 
   # restart
-  function restart()
-  {
-    _status && stop
-    start
+  function _restart()
+  {(
+    _is_running && _stop
+    _start
 
     return 0
-  }
-
-  # status
-  function status()
-  {
-    _status && echo "${SERVICE} is running..." || echo "${SERVICE} is stop."
-    return 0
-  }
+  )}
 
   # status
   function _status()
-  {
-    ps cax | grep mysqld > /dev/null
+  {(
+    _is_running && echo "${SERVICE} is running..." || echo "${SERVICE} is stop."
+
+    return 0
+  )}
+
+  # status
+  function _is_running()
+  {(
+    ps cax | grep "mysqld" > /dev/null
 
     return $?
-  }
-}
+  )}
+
+  _main "${1}"
+
+  return $?
+)}
 
 #  php main
-function PHP()
-{
+function _php()
+{(
   SERVICE="php"
 
-  # check php version
-  function check()
+  function _main()
   {
-    cat ${_HTTPD_CONF} | grep -e "php5_module\|php7_module" | awk '{print $3}' | sed -e "s#${_PHP_DIR}/##g" | sed -e "s#/.*##g"
-    return 0
+      case ${1} in
+        -v | --check-ver)
+          _check
+          ;;
+        -cv | --conf-ver)
+          _change
+          ;;
+        -cfg | --conf)
+          _conf
+          ;;
+        -a)
+          _a
+          ;;
+        *)
+          _help
+          ;;
+      esac
+
+      return $?
   }
 
+  # check php version
+  function _check()
+  {(
+    cat ${_HTTPD_CONF} | grep -e "php5_module\|php7_module" | awk '{print $3}' | sed -e "s#${_PHP_DIR}/##g" | sed -e "s#/.*##g"
+
+    return 0
+  )}
+
   # select php version
-  function change()
-  {
-    local ans
-    local php_ver=''
-    local php_vers=($(ls ${_PHP_DIR} | grep php))
+  function _change()
+  {(
+    ans
+    php_ver=''
+    php_vers=($(ls ${_PHP_DIR} | grep php))
 
     while :;do
       echo ""
@@ -279,7 +285,7 @@ function PHP()
       echo "=="
       echo ""
       echo "Please select PHP version number."
-      local -i count=0
+      -i count=0
       for v in ${php_vers[*]};do
         echo " [${count}] ${v}"
         count=$count+1
@@ -300,17 +306,17 @@ function PHP()
     if _edit_httpd_conf "${php_ver}" && _edit_bash_profile "${php_ver}";then
       echo "Changed PHP version to ${php_ver}."
       echo "Httpd restart."
-      HTTPD && restart
+      _httpd restart
     fi
     return 0
-  }
+  )}
 
   # php.ini
-  function conf()
-  {
-    local php_ver="$(check)"
-    local php_conf="${_PHP_DIR}/${php_ver}/conf/php.ini"
-    local php_conf_back="${php_conf}.back"
+  function _conf()
+  {(
+    php_ver="$(check)"
+    php_conf="${_PHP_DIR}/${php_ver}/conf/php.ini"
+    php_conf_back="${php_conf}.back"
 
     echo "Now PHP Version: ${php_ver}"
     echo "To change the php.ini file ?"
@@ -318,7 +324,7 @@ function PHP()
       return 0
     fi
 
-    [ ! -f ${php_conf} ] && Err "Default 'php.ini' is not found."
+    [ ! -f ${php_conf} ] && _error "Default 'php.ini' is not found." && return 1
     [ ! -f php_conf_back ] && cp ${php_conf} ${php_conf}.back
 
     while vi ${php_conf} || :;do
@@ -326,7 +332,7 @@ function PHP()
       if _ynselecter;then
         echo "Httpd restart ?"
         if _ynselecter;then
-          HTTPD && restart && break
+          _httpd && restart && break
         else
           break
         fi
@@ -334,22 +340,22 @@ function PHP()
     done
 
     return 0
-  }
+  )}
 
   # php debug
-  function a()
-  {
-    local path="/tmp/"
-    local name="$(date "+%Y%m%d%H%I%S").php"
-    local file="${path}${name}"
-    local opened="false"
+  function _a()
+  {(
+    path="/tmp/"
+    name="$(date "+%Y%m%d%H%I%S").php"
+    file="${path}${name}"
+    opened="false"
 
     echo "<?php" > ${file}
 
     trap 'rm ${file}; exit 0' 1 2 3 15
 
     if [ ! -f ${file} ];then
-      err "php file is not found."
+      _error "php file is not found." && return 1
     fi
 
     while vi ${file} || :;do
@@ -365,14 +371,14 @@ function PHP()
     done
 
     return 0
-  }
+  )}
 
 
   # edit httpd.conf
   function _edit_httpd_conf()
-  {
-    local before=$(cat ${_HTTPD_CONF} | grep "${_PHP_DIR}" | grep -e "php.*/modules/libphp5.so\|php.*/modules/libphp7.so")
-    local after=
+  {(
+    before=$(cat ${_HTTPD_CONF} | grep "${_PHP_DIR}" | grep -e "php.*/modules/libphp5.so\|php.*/modules/libphp7.so")
+    after=
 
     if echo ${1} | grep "php7";then
       after="LoadModule php7_module        ${_PHP_DIR}/${1}/modules/libphp7.so"
@@ -385,21 +391,21 @@ function PHP()
     else
       return 1
     fi
-  }
+  )}
 
   # To changed php version, Write to .bash_profile php path
   function _edit_bash_profile()
-  {
-    local bash_profile="${HOME}/.bash_profile"
+  {(
+    bash_profile="${HOME}/.bash_profile"
     if [ ! -e ${bash_profile} ];then
       echo "${bash_profile} is not found."
       return 0
     fi
 
-    local reg="export\\ PATH=${_PHP_DIR}/php.*/bin:\\\$PATH"
+    reg="export\\ PATH=${_PHP_DIR}/php.*/bin:\\\$PATH"
     if [ $(cat "${bash_profile}" | grep "${reg}" | wc -l) -eq 1 ];then
-      local before=$(cat ${bash_profile} | grep "${reg}")
-      local after="export PATH=${_PHP_DIR}/${1}/bin:\$PATH"
+      before=$(cat ${bash_profile} | grep "${reg}")
+      after="export PATH=${_PHP_DIR}/${1}/bin:\$PATH"
       if ! sed -i "" -e "s#${before}#${after}#" ${bash_profile};then
         return 1
       fi
@@ -410,15 +416,17 @@ function PHP()
 
     echo "Execute 'source ${bash_profile}'"
     return 0
-  }
+  )}
 
-  return 0
-}
+  _main ${1}
+
+  return $?
+)}
 
 #  Waiting to be processed
 function _wait()
-{
-  local end=
+{(
+  end=
 
   if [ "${2}" = 'start' ];then
     end=0
@@ -428,20 +436,19 @@ function _wait()
     return 1
   fi
 
-  ${1}
   echo -n "Please wait..."
   while :;do
-    _status
+    _is_running
     [ $? -eq ${end} ] && return 0
     echo -n "."
   done
-}
+)}
 
 #  Yes or No Selecter
 function _ynselecter()
-{
+{(
   while true;do
-    local ans
+    ans
     echo "Please select. [y/N]"
     echo -n "> "
     read ans
@@ -459,15 +466,17 @@ function _ynselecter()
         ;;
     esac
   done
-}
+)}
 
 #  Output error message and Processing end
-function Err()
+function _error()
 {
-  echo "Error: ${1}";exit 1
+  echo "Error: ${1}";
+
+  return 0
 }
 
-[ ${#} -le 0 ] && help && exit 1
-main ${*}
+[ ${#} -le 0 ] && _help && exit 1
+_main ${*}
 
 exit 0
