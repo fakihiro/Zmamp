@@ -10,414 +10,415 @@
 
 function Zmamp()
 {(
-  function _help()
-  {(
-    echo ""
-    echo "Usage: Zmamp [start]"
-    echo "             [stop]"
-    echo "             [httpd] [start|stop|restart|status|conf]"
-    echo "             [mysqld] [start|stop|restart|status]"
-    echo "             [php] [-v|-cv|-cfg|-a]"
-    echo ""
-    echo "Options:"
-    echo "  start                      Starting the apache and mysql of MAMP"
-    echo "  stop                       Stop apache and mysql of MAMP"
-    echo "  httpd"
-    echo "    start                    Starting the apache of MAMP"
-    echo "    stop                     Stop the apache of MAMP"
-    echo "    restart                  Restarting the apache of MAMP"
-    echo "    status                   Check the status of the apache of MAMP"
-    echo "  mysqld"
-    echo "    start                    Starting the mysqld of MAMP"
-    echo "    stop                     Stop the mysqld of MAMP"
-    echo "    restart                  Restarting the mysqld of MAMP"
-    echo "    status                   Check the status of the mysqld of MAMP"
-    echo "  php"
-    echo "    -v   | --version         PHP version confirmation of MAMP"
-    echo "    -cv  | --change-version  Change PHP version for Default and MAMP"
-    echo "    -a                       Develop tool"
-  )}
-
-  function _main()
-  {(
-    _PROG="Zmamp"
-
-    _BASE_DIR="/Applications/MAMP"
-    _BIN_DIR="${_BASE_DIR}/bin"
-    _PHP_DIR="${_BIN_DIR}/php"
-    _CONF_DIR="${_BASE_DIR}/conf"
-    _HTTPD_CONF="${_CONF_DIR}/apache/httpd.conf"
-
-    case ${1} in
-      start | stop | status)
-        _mamp ${1}
-        ;;
-      httpd )
-        _httpd ${2}
-        ;;
-      mysqld )
-        _mysqld ${2}
-        ;;
-      php )
-        _php ${2}
-        ;;
-      -h | --help | * )
-        help
-        ;;
-    esac
-
-    return 0
-  )}
-
-  function _mamp()
-  {(
-    _httpd && ${1} || return 1
-
-    _mysqld && ${1} || return 1
-
-    return 0
-  )}
-
-  function _httpd()
-  {(
-    _SERVICE="httpd"
+    function _help()
+    {(
+        echo ""
+        echo "Usage: Zmamp [start]"
+        echo "             [stop]"
+        echo "             [httpd] [start|stop|restart|status|conf]"
+        echo "             [mysqld] [start|stop|restart|status]"
+        echo "             [php] [-v|-cv|-cfg|-a]"
+        echo ""
+        echo "Options:"
+        echo "  start                      Starting the apache and mysql of MAMP"
+        echo "  stop                       Stop apache and mysql of MAMP"
+        echo "  httpd"
+        echo "    start                    Starting the apache of MAMP"
+        echo "    stop                     Stop the apache of MAMP"
+        echo "    restart                  Restarting the apache of MAMP"
+        echo "    status                   Check the status of the apache of MAMP"
+        echo "  mysqld"
+        echo "    start                    Starting the mysqld of MAMP"
+        echo "    stop                     Stop the mysqld of MAMP"
+        echo "    restart                  Restarting the mysqld of MAMP"
+        echo "    status                   Check the status of the mysqld of MAMP"
+        echo "  php"
+        echo "    -v   | --version         PHP version confirmation of MAMP"
+        echo "    -cv  | --change-version  Change PHP version for Default and MAMP"
+        echo "    -a                       Develop tool"
+    )}
 
     function _main()
     {(
-      case ${1} in
-        start | stop | restart | status)
-          _${1}
-          ;;
-        *)
-          _help
-          ;;
-      esac
+        _PROG="Zmamp"
 
-      return $?
-    )}
+        _BASE_DIR="/Applications/MAMP"
+        _BIN_DIR="${_BASE_DIR}/bin"
+        _PHP_DIR="${_BIN_DIR}/php"
+        _CONF_DIR="${_BASE_DIR}/conf"
+        _HTTPD_CONF="${_CONF_DIR}/apache/httpd.conf"
 
-    # start
-    function _start()
-    {(
-      echo "Start ${_SERVICE}."
-
-      _is_running && echo "${_SERVICE} already running..." && return 0
-
-      if sudo ${_BIN_DIR}/startApache.sh;then
-        _wait "_httpd" "start" && echo " [ OK ]" || echo " [ Failed ]"
-      else
-        _error "httpd start failed." && return 1
-      fi
-
-      return 0
-    )}
-
-    # stop
-    function _stop()
-    {(
-      echo "Stop ${_SERVICE}."
-
-      ! _is_running && echo "${_SERVICE} already stopped." && return 0
-
-      if sudo ${_BIN_DIR}/stopApache.sh;then
-        _wait "_httpd" "stop" && echo "[ OK ]" || echo "[ Failed ]"
-      else
-        _error "httpd stop failed." && return 1
-      fi
-
-      return 0
-    )}
-
-    # restart
-    function _restart()
-    {(
-      _is_running && _stop
-      _start
-
-      return 0
-    )}
-
-    # status
-    function _status()
-    {(
-      _is_running && echo "${_SERVICE} is running..." || echo "${_SERVICE} is stop."
-      return 0
-    )}
-
-    # _is_running
-    function _is_running()
-    {(
-      # return code
-      # 0: Is running
-      # 1: Stoped
-
-      ps cax | grep "httpd" > /dev/null
-
-      return $?
-    )}
-
-    _main "${1}"
-
-    return 0
-  )}
-
-  #  mysqld main
-  function _mysqld()
-  {(
-    _SERVICE="mysqld"
-
-    function _main()
-    {(
         case ${1} in
-          start | stop | restart | status )
-            _${1}
-            ;;
-          *)
-            _help
-            ;;
+            start | stop | status )
+                _mamp ${1}
+                ;;
+            httpd )
+                _httpd ${2}
+                ;;
+            mysqld )
+                _mysqld ${2}
+                ;;
+            php )
+                _php ${2}
+                ;;
+            -h | --help | * )
+                help
+                ;;
         esac
 
-        return $?
-    )}
-
-    # start
-    function _start()
-    {(
-      _is_running &&  echo "${_SERVICE} is already running." && return 0
-
-      echo "Start ${_SERVICE}."
-      nohup ${_BIN_DIR}/startMysql.sh > /dev/null
-
-      _wait "_mysqld" "start" && echo "[ OK ]" || echo "[ Failed ]"
-
-      return 0
-    )}
-
-    # stop
-    function _stop()
-    {(
-      ! _is_running && echo "${_SERVICE} is not running." && return 0
-
-      echo "Stop ${_SERVICE}."
-      nohup ${_BIN_DIR}/stopMysql.sh > /dev/null
-
-      _wait "_mysqld" "stop" && echo "[ OK ]" || echo "[ Failed ]"
-
-      return 0
-    )}
-
-    # restart
-    function _restart()
-    {(
-      _is_running && _stop
-      _start
-
-      return 0
-    )}
-
-    # status
-    function _status()
-    {(
-      _is_running && echo "${_SERVICE} is running..." || echo "${_SERVICE} is stop."
-
-      return 0
-    )}
-
-    # status
-    function _is_running()
-    {(
-      ps cax | grep "mysqld" > /dev/null
-
-      return $?
-    )}
-
-    _main "${1}"
-
-    return $?
-  )}
-
-  #  php main
-  function _php()
-  {(
-    _SERVICE="php"
-
-    function _main()
-    {(
-        case ${1} in
-          -v | --check-ver)
-            _check
-            ;;
-          -cv | --conf-ver)
-            _change
-            ;;
-          -a)
-            _a
-            ;;
-          *)
-            _help
-            ;;
-        esac
-
-        return $?
-    )}
-
-    # check php version
-    function _check()
-    {(
-      cat ${_HTTPD_CONF} | grep -e "php5_module\|php7_module" | awk '{print $3}' | sed -e "s#${_PHP_DIR}/##g" | sed -e "s#/.*##g"
-
-      return 0
-    )}
-
-    # select php version
-    function _change()
-    {(
-      _ANS=
-      _PHP_VER=''
-      _PHP_VERS=($(ls ${_PHP_DIR} | grep php))
-
-      while :;do
-        echo "Please select PHP version number."
-        _COUNT=0
-        for _V in ${_PHP_VERS[*]};do
-          echo " [${_COUNT}] ${_V}"
-          _COUNT=$(( _COUNT + 1 ))
-        done
-        echo " [${_COUNT}] exit"
-        echo -n "> "
-        read _ANS
-        if [ ${_ANS} -le ${_COUNT} ];then
-          if [ ${_ANS} -eq ${_COUNT} ];then
-            return 0
-          else
-            _PHP_VER=${_PHP_VERS[${_ANS}]}
-          fi
-          break
-        fi
-      done
-
-      if _edit_httpd_conf "${_PHP_VER}" ;then
-        echo "Changed PHP version to ${_PHP_VER}."
-        echo "Httpd restart."
-        _httpd restart
-      fi
-      return 0
-    )}
-
-    # php debug
-    function _a()
-    {(
-      _PATH="/tmp/"
-      _NAME="$(date "+%Y%m%d%H%I%S").php"
-      _FILE="${_PATH}${_NAME}"
-      _OPENED="false"
-
-      echo "<?php" > ${_FILE}
-
-      trap 'rm ${_FILE}; exit 0' 1 2 3 15
-
-      if [ ! -f ${_FILE} ];then
-        _error "php file is not found." && return 1
-      fi
-
-      while vi ${_FILE} || :;do
-        echo ""
-        php ${_FILE}
-        echo ""
-
-        echo "Continue ?"
-        if ! _ynselecter;then
-          rm ${_FILE}
-          break
-        fi
-      done
-
-      return 0
-    )}
-
-
-    # edit httpd.conf
-    function _edit_httpd_conf()
-    {(
-      _BEFORE=$(cat ${_HTTPD_CONF} | grep "${_PHP_DIR}" | grep -e "php.*/modules/libphp5.so\|php.*/modules/libphp7.so")
-      _AFTER=
-
-      if echo ${1} | grep "php7";then
-        _AFTER="LoadModule php7_module        ${_PHP_DIR}/${1}/modules/libphp7.so"
-      else
-        _AFTER="LoadModule php5_module        ${_PHP_DIR}/${1}/modules/libphp5.so"
-      fi
-
-      if sed -i "" -e "s#${_BEFORE}#${_AFTER}#" ${_HTTPD_CONF};then
         return 0
-      else
-        return 1
-      fi
     )}
 
-    _main ${1}
+    function _mamp()
+    {(
+        _httpd && ${1} || return 1
+
+        _mysqld && ${1} || return 1
+
+        return 0
+    )}
+
+    function _httpd()
+    {(
+        _SERVICE="httpd"
+
+        function _main()
+        {(
+            case ${1} in
+                start | stop | restart | status )
+                    _${1}
+                    ;;
+                *)
+                    _help
+                    ;;
+            esac
+
+            return $?
+        )}
+
+        # start
+        function _start()
+        {(
+            echo "Start ${_SERVICE}."
+
+            _is_running && echo "${_SERVICE} already running..." && return 0
+
+            if sudo ${_BIN_DIR}/startApache.sh;then
+                _wait "_httpd" "start" && echo " [ OK ]" || echo " [ Failed ]"
+            else
+                _error "httpd start failed." && return 1
+            fi
+
+            return 0
+        )}
+
+        # stop
+        function _stop()
+        {(
+            echo "Stop ${_SERVICE}."
+
+            ! _is_running && echo "${_SERVICE} already stopped." && return 0
+
+            if sudo ${_BIN_DIR}/stopApache.sh;then
+                _wait "_httpd" "stop" && echo "[ OK ]" || echo "[ Failed ]"
+            else
+                _error "httpd stop failed." && return 1
+            fi
+
+            return 0
+        )}
+
+        # restart
+        function _restart()
+        {(
+            _is_running && _stop
+            _start
+
+            return 0
+        )}
+
+        # status
+        function _status()
+        {(
+            _is_running && echo "${_SERVICE} is running..." || echo "${_SERVICE} is stop."
+
+            return 0
+        )}
+
+        # _is_running
+        function _is_running()
+        {(
+            # return code
+            # 0: Is running
+            # 1: Stoped
+
+            ps cax | grep "httpd" > /dev/null
+
+            return $?
+        )}
+
+        _main "${1}"
+
+        return 0
+    )}
+
+    #  mysqld main
+    function _mysqld()
+    {(
+        _SERVICE="mysqld"
+
+        function _main()
+        {(
+            case ${1} in
+                start | stop | restart | status )
+                    _${1}
+                    ;;
+                *)
+                    _help
+                    ;;
+            esac
+
+            return $?
+        )}
+
+        # start
+        function _start()
+        {(
+            _is_running &&  echo "${_SERVICE} is already running." && return 0
+
+            echo "Start ${_SERVICE}."
+            nohup ${_BIN_DIR}/startMysql.sh > /dev/null
+
+            _wait "_mysqld" "start" && echo "[ OK ]" || echo "[ Failed ]"
+
+            return 0
+        )}
+
+        # stop
+        function _stop()
+        {(
+            ! _is_running && echo "${_SERVICE} is not running." && return 0
+
+            echo "Stop ${_SERVICE}."
+            nohup ${_BIN_DIR}/stopMysql.sh > /dev/null
+
+            _wait "_mysqld" "stop" && echo "[ OK ]" || echo "[ Failed ]"
+
+            return 0
+        )}
+
+        # restart
+        function _restart()
+        {(
+            _is_running && _stop
+            _start
+
+            return 0
+        )}
+
+        # status
+        function _status()
+        {(
+            _is_running && echo "${_SERVICE} is running..." || echo "${_SERVICE} is stop."
+
+            return 0
+        )}
+
+        # status
+        function _is_running()
+        {(
+            ps cax | grep "mysqld" > /dev/null
+
+            return $?
+        )}
+
+        _main "${1}"
+
+        return $?
+    )}
+
+    #  php main
+    function _php()
+    {(
+        _SERVICE="php"
+
+        function _main()
+        {(
+            case ${1} in
+                -v | --check-ver)
+                    _check
+                    ;;
+                -cv | --conf-ver)
+                    _change
+                    ;;
+                -a)
+                    _a
+                    ;;
+                *)
+                    _help
+                    ;;
+            esac
+
+            return $?
+        )}
+
+        # check php version
+        function _check()
+        {(
+            cat ${_HTTPD_CONF} | grep -e "php5_module\|php7_module" | awk '{print $3}' | sed -e "s#${_PHP_DIR}/##g" | sed -e "s#/.*##g"
+
+            return 0
+        )}
+
+        # select php version
+        function _change()
+        {(
+            _ANS=
+            _PHP_VER=''
+            _PHP_VERS=($(ls ${_PHP_DIR} | grep php))
+
+            while :;do
+                echo "Please select PHP version number."
+                _COUNT=0
+                for _V in ${_PHP_VERS[*]};do
+                    echo " [${_COUNT}] ${_V}"
+                    _COUNT=$(( _COUNT + 1 ))
+                done
+
+                echo " [${_COUNT}] exit"
+                echo -n "> "
+                read _ANS
+                if [ ${_ANS} -le ${_COUNT} ];then
+                    if [ ${_ANS} -eq ${_COUNT} ];then
+                        return 0
+                    else
+                        _PHP_VER=${_PHP_VERS[${_ANS}]}
+                    fi
+                    break
+                fi
+            done
+
+            if _edit_httpd_conf "${_PHP_VER}" ;then
+                echo "Changed PHP version to ${_PHP_VER}."
+                echo "Httpd restart."
+                _httpd restart
+            fi
+
+            return 0
+        )}
+
+        # php debug
+        function _a()
+        {(
+            _PATH="/tmp/"
+            _NAME="$(date "+%Y%m%d%H%I%S").php"
+            _FILE="${_PATH}${_NAME}"
+            _OPENED="false"
+
+            echo "<?php" > ${_FILE}
+
+            trap 'rm ${_FILE}; exit 0' 1 2 3 15
+
+            if [ ! -f ${_FILE} ];then
+            _error "php file is not found." && return 1
+            fi
+
+            while vi ${_FILE} || :;do
+                echo ""
+                php ${_FILE}
+                echo ""
+
+                echo "Continue ?"
+                if ! _ynselecter;then
+                    rm ${_FILE}
+                    break
+                fi
+            done
+
+            return 0
+        )}
+
+
+        # edit httpd.conf
+        function _edit_httpd_conf()
+        {(
+            _BEFORE=$(cat ${_HTTPD_CONF} | grep "${_PHP_DIR}" | grep -e "php.*/modules/libphp5.so\|php.*/modules/libphp7.so")
+            _AFTER=
+
+            if echo ${1} | grep "php7";then
+                _AFTER="LoadModule php7_module        ${_PHP_DIR}/${1}/modules/libphp7.so"
+            else
+                _AFTER="LoadModule php5_module        ${_PHP_DIR}/${1}/modules/libphp5.so"
+            fi
+
+            if ! sed -i "" -e "s#${_BEFORE}#${_AFTER}#" ${_HTTPD_CONF};then
+                return 1
+            fi
+
+            return 0
+        )}
+
+        _main ${1}
+
+        return $?
+    )}
+
+    #  Waiting to be processed
+    function _wait()
+    {(
+        _END=
+
+        if [ "${2}" = 'start' ];then
+            _END=0
+        elif [ "${2}" = 'stop' ];then
+            _END=1
+        else
+            return 1
+        fi
+
+        echo -n "Please wait..."
+        while :;do
+            _is_running
+            [ $? -eq ${_END} ] && return 0
+            echo -n "."
+        done
+    )}
+
+    #  Yes or No Selecter
+    function _ynselecter()
+    {(
+        while true;do
+            _ANS=
+            echo "Please select. [y/N]"
+            echo -n "> "
+            read _ANS
+            [ -z ${_ANS} ] && _ANS="FALSE"
+            case ${_ANS} in
+                y)
+                    return 0
+                    ;;
+                N)
+                    return 1
+                    ;;
+                *)
+                    ;;
+            esac
+        done
+    )}
+
+    #  Output error message and Processing end
+    function _error()
+    {(
+        echo "Error: ${1}";
+
+        return 0
+    )}
+
+    [ ${#} -le 0 ] && _help && exit 1
+
+    _main ${*}
 
     return $?
-  )}
-
-  #  Waiting to be processed
-  function _wait()
-  {(
-    _END=
-
-    if [ "${2}" = 'start' ];then
-      _END=0
-    elif [ "${2}" = 'stop' ];then
-      _END=1
-    else
-      return 1
-    fi
-
-    echo -n "Please wait..."
-    while :;do
-      _is_running
-      [ $? -eq ${_END} ] && return 0
-      echo -n "."
-    done
-  )}
-
-  #  Yes or No Selecter
-  function _ynselecter()
-  {(
-    while true;do
-      _ANS
-      echo "Please select. [y/N]"
-      echo -n "> "
-      read _ANS
-      if [ -z ${_ANS} ];then
-        _ANS="FALSE"
-      fi
-      case ${_ANS} in
-        y)
-          return 0
-          ;;
-        N)
-          return 1
-          ;;
-        *)
-          ;;
-      esac
-    done
-  )}
-
-  #  Output error message and Processing end
-  function _error()
-  {(
-    echo "Error: ${1}";
-
-    return 0
-  )}
-
-  [ ${#} -le 0 ] && _help && exit 1
-
-  _main ${*}
-
-  return $?
 )}
 
 Zmamp ${*}
