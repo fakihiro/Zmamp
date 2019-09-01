@@ -27,7 +27,6 @@ function Zmamp()
     echo "    stop                     Stop the apache of MAMP"
     echo "    restart                  Restarting the apache of MAMP"
     echo "    status                   Check the status of the apache of MAMP"
-    echo "    conf                     Change the httpd.conf"
     echo "  mysqld"
     echo "    start                    Starting the mysqld of MAMP"
     echo "    stop                     Stop the mysqld of MAMP"
@@ -36,7 +35,6 @@ function Zmamp()
     echo "  php"
     echo "    -v   | --version         PHP version confirmation of MAMP"
     echo "    -cv  | --change-version  Change PHP version for Default and MAMP"
-    echo "    -cfg | --conf            Change the php.ini of the MAMP php"
     echo "    -a                       Develop tool"
   )}
 
@@ -252,9 +250,6 @@ function Zmamp()
           -cv | --conf-ver)
             _change
             ;;
-          -cfg | --conf)
-            _conf
-            ;;
           -a)
             _a
             ;;
@@ -301,42 +296,11 @@ function Zmamp()
         fi
       done
 
-      if _edit_httpd_conf "${_PHP_VER}" && _edit_bash_profile "${_PHP_VER}";then
+      if _edit_httpd_conf "${_PHP_VER}" ;then
         echo "Changed PHP version to ${_PHP_VER}."
         echo "Httpd restart."
         _httpd restart
       fi
-      return 0
-    )}
-
-    # php.ini
-    function _conf()
-    {(
-      _PHP_VER="$(check)"
-      _PHP_CONF="${_PHP_DIR}/${_PHP_VER}/conf/php.ini"
-      _PHP_CONF_BACK="${_PHP_CONF}.back"
-
-      echo "Now PHP Version: ${_PHP_VER}"
-      echo "To change the php.ini file ?"
-      if ! _ynselecter;then
-        return 0
-      fi
-
-      [ ! -f ${_PHP_CONF} ] && _error "Default 'php.ini' is not found." && return 1
-      [ ! -f _PHP_CONF_BACK ] && cp ${_PHP_CONF} ${_PHP_CONF}.back
-
-      while vi ${_PHP_CONF} || :;do
-        echo "Edit the end ?"
-        if _ynselecter;then
-          echo "Httpd restart ?"
-          if _ynselecter;then
-            _httpd && restart && break
-          else
-            break
-          fi
-        fi
-      done
-
       return 0
     )}
 
@@ -389,31 +353,6 @@ function Zmamp()
       else
         return 1
       fi
-    )}
-
-    # To changed php version, Write to .bash_profile php path
-    function _edit_bash_profile()
-    {(
-      _BASH_PROFILE="${HOME}/.bash_profile"
-      if [ ! -e ${_BASH_PROFILE} ];then
-        echo "${_BASH_PROFILE} is not found."
-        return 0
-      fi
-
-      _REG="export\\ PATH=${_PHP_DIR}/php.*/bin:\\\$PATH"
-      if [ $(cat "${_BASH_PROFILE}" | grep "${_REG}" | wc -l) -eq 1 ];then
-        _BEFORE=$(cat ${_BASH_PROFILE} | grep "${_REG}")
-        _AFTER="export PATH=${_PHP_DIR}/${1}/bin:\$PATH"
-        if ! sed -i "" -e "s#${_BEFORE}#${_AFTER}#" ${_BASH_PROFILE};then
-          return 1
-        fi
-      else
-        echo "${_AFTER}" >> ${_BASH_PROFILE}
-        echo "Add 'MAMP PHP PATH' to .bash_profile."
-      fi
-
-      echo "Execute 'source ${_BASH_PROFILE}'"
-      return 0
     )}
 
     _main ${1}
