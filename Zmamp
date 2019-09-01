@@ -10,14 +10,14 @@
 
 function Include_conf()
 {
-  MAMPDIR="/Applications/MAMP"
-  BINDIR="${MAMPDIR}/bin"
-  PHPDIR="${BINDIR}/php"
-  CONFDIR="${MAMPDIR}/conf"
-  HTTPD_CONF="${CONFDIR}/apache/httpd.conf"
+  _BASE_DIR="/Applications/MAMP"
+  _BIN_DIR="${_BASE_DIR}/bin"
+  _PHP_DIR="${_BIN_DIR}/php"
+  _CONF_DIR="${_BASE_DIR}/conf"
+  _HTTPD_CONF="${_CONF_DIR}/apache/httpd.conf"
 }
 
-function HELP()
+function help()
 {
   echo ""
   echo "Usage: Zmamp [start]"
@@ -47,14 +47,14 @@ function HELP()
   echo "    status                   Check the status of the mysqld of MAMP"
 }
 
-function Main()
+function main()
 {
   local prog="Zmamp"
   Include_conf
 
   case ${1} in
     start | stop | status)
-      MAMP "${1}"
+      mamp "${1}"
       ;;
     httpd )
       case ${2} in
@@ -62,7 +62,7 @@ function Main()
           HTTPD && ${2}
           ;;
         *)
-          HELP
+          help
           ;;
       esac
       ;;
@@ -72,7 +72,7 @@ function Main()
           MYSQLD && ${2}
           ;;
         *)
-          HELP
+          help
           ;;
       esac
       ;;
@@ -92,19 +92,19 @@ function Main()
           a ${2}
           ;;
         *)
-          HELP
+          help
           ;;
       esac
       ;;
     -h | --help | * )
-      HELP
+      help
       ;;
   esac
 
   return 0
 }
 
-function MAMP()
+function mamp()
 {
   local r=0
   HTTPD && ${1} || r=1
@@ -123,7 +123,7 @@ function HTTPD()
 
     _status && echo "${SERVICE} already running..." && return 0
 
-    if sudo ${BINDIR}/startApache.sh;then
+    if sudo ${_BIN_DIR}/startApache.sh;then
       _wait "HTTPD" "start" && echo " [ OK ]" || echo " [ Failed ]"
     else
       Err "httpd start failed."
@@ -139,7 +139,7 @@ function HTTPD()
 
     ! _status && echo "${SERVICE} already stopped." && return 0
 
-    if sudo ${BINDIR}/stopApache.sh;then
+    if sudo ${_BIN_DIR}/stopApache.sh;then
       _wait "HTTPD" "stop" && echo "[ OK ]" || echo "[ Failed ]"
     else
       Err "httpd stop failed."
@@ -181,12 +181,12 @@ function HTTPD()
     echo "To change the httpd.conf file ?"
     ! _ynselecter && return 0
 
-    [ ! -e ${HTTPD_CONF} ] && Err "'httpd.conf' is not found."
+    [ ! -e ${_HTTPD_CONF} ] && Err "'httpd.conf' is not found."
 
-    local _STAT="stat -f "%m" ${HTTPD_CONF}"
+    local _STAT="stat -f "%m" ${_HTTPD_CONF}"
     local _ftime=$(${_STAT})
 
-    while vi ${HTTPD_CONF} || :;do
+    while vi ${_HTTPD_CONF} || :;do
       echo "Edit the end ?"
       if _ynselecter ;then
         [ "$(${_STAT})" != "${_ftime}" ] && restart && return 0 || return 0
@@ -208,7 +208,7 @@ function MYSQLD()
     _status &&  echo "${SERVICE} is already running." && return 0
 
     echo "Start ${SERVICE}."
-    nohup ${BINDIR}/startMysql.sh > /dev/null
+    nohup ${_BIN_DIR}/startMysql.sh > /dev/null
 
     _wait "MYSQLD" "start" && echo "[ OK ]" || echo "[ Failed ]"
 
@@ -221,7 +221,7 @@ function MYSQLD()
     ! _status && echo "${SERVICE} is not running." && return 0
 
     echo "Stop ${SERVICE}."
-    nohup ${BINDIR}/stopMysql.sh > /dev/null
+    nohup ${_BIN_DIR}/stopMysql.sh > /dev/null
 
     _wait "MYSQLD" "stop" && echo "[ OK ]" || echo "[ Failed ]"
 
@@ -261,7 +261,7 @@ function PHP()
   # check php version
   function check()
   {
-    cat ${HTTPD_CONF} | grep -e "php5_module\|php7_module" | awk '{print $3}' | sed -e "s#${PHPDIR}/##g" | sed -e "s#/.*##g" 
+    cat ${_HTTPD_CONF} | grep -e "php5_module\|php7_module" | awk '{print $3}' | sed -e "s#${_PHP_DIR}/##g" | sed -e "s#/.*##g"
     return 0
   }
 
@@ -270,7 +270,7 @@ function PHP()
   {
     local ans
     local php_ver=''
-    local php_vers=($(ls ${PHPDIR} | grep php))
+    local php_vers=($(ls ${_PHP_DIR} | grep php))
 
     while :;do
       echo ""
@@ -309,7 +309,7 @@ function PHP()
   function conf()
   {
     local php_ver="$(check)"
-    local php_conf="${PHPDIR}/${php_ver}/conf/php.ini"
+    local php_conf="${_PHP_DIR}/${php_ver}/conf/php.ini"
     local php_conf_back="${php_conf}.back"
 
     echo "Now PHP Version: ${php_ver}"
@@ -371,16 +371,16 @@ function PHP()
   # edit httpd.conf
   function _edit_httpd_conf()
   {
-    local before=$(cat ${HTTPD_CONF} | grep "${PHPDIR}" | grep -e "php.*/modules/libphp5.so\|php.*/modules/libphp7.so")
+    local before=$(cat ${_HTTPD_CONF} | grep "${_PHP_DIR}" | grep -e "php.*/modules/libphp5.so\|php.*/modules/libphp7.so")
     local after=
 
     if echo ${1} | grep "php7";then
-      after="LoadModule php7_module        ${PHPDIR}/${1}/modules/libphp7.so"
+      after="LoadModule php7_module        ${_PHP_DIR}/${1}/modules/libphp7.so"
     else
-      after="LoadModule php5_module        ${PHPDIR}/${1}/modules/libphp5.so"
+      after="LoadModule php5_module        ${_PHP_DIR}/${1}/modules/libphp5.so"
     fi
 
-    if sed -i "" -e "s#${before}#${after}#" ${HTTPD_CONF};then
+    if sed -i "" -e "s#${before}#${after}#" ${_HTTPD_CONF};then
       return 0
     else
       return 1
@@ -396,10 +396,10 @@ function PHP()
       return 0
     fi
 
-    local reg="export\\ PATH=${PHPDIR}/php.*/bin:\\\$PATH"
+    local reg="export\\ PATH=${_PHP_DIR}/php.*/bin:\\\$PATH"
     if [ $(cat "${bash_profile}" | grep "${reg}" | wc -l) -eq 1 ];then
       local before=$(cat ${bash_profile} | grep "${reg}")
-      local after="export PATH=${PHPDIR}/${1}/bin:\$PATH"
+      local after="export PATH=${_PHP_DIR}/${1}/bin:\$PATH"
       if ! sed -i "" -e "s#${before}#${after}#" ${bash_profile};then
         return 1
       fi
@@ -467,7 +467,7 @@ function Err()
   echo "Error: ${1}";exit 1
 }
 
-[ ${#} -le 0 ] && HELP && exit 1
-Main ${*}
+[ ${#} -le 0 ] && help && exit 1
+main ${*}
 
 exit 0
