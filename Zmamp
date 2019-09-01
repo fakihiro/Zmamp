@@ -242,7 +242,7 @@ function Zmamp()
     _SERVICE="php"
 
     function _main()
-    {
+    {(
         case ${1} in
           -v | --check-ver)
             _check
@@ -259,7 +259,7 @@ function Zmamp()
         esac
 
         return $?
-    }
+    )}
 
     # check php version
     function _check()
@@ -407,11 +407,11 @@ function Zmamp()
 
   #  Output error message and Processing end
   function _error()
-  {
+  {(
     echo "Error: ${1}";
 
     return 0
-  }
+  )}
 
   [ ${#} -le 0 ] && _help && exit 1
 
